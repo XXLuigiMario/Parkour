@@ -31,6 +31,7 @@ import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -113,16 +114,16 @@ public class ParkourListener implements Listener {
                 return;
         }
 
-        Material belowMaterial = player.getLocation().getBlock().getRelative(BlockFace.DOWN).getType();
+        Block block = player.getLocation().getBlock().getRelative(BlockFace.DOWN);
+        ItemStack belowMaterial = new ItemStack(block.getType(), 1, block.getData());
         ParkourKit kit = PlayerMethods.getParkourSession(player.getName()).getCourse().getParkourKit();
+        String action = kit.getAction(belowMaterial);
 
-        if (belowMaterial.equals(Material.SPONGE)) {
+        if (belowMaterial.getType().equals(Material.SPONGE)) {
             player.setFallDistance(0);
         }
 
-        if (kit.getMaterials().contains(belowMaterial)) {
-            String action = kit.getAction(belowMaterial);
-
+        if (action != null) {
             switch (action) {
                 case "finish":
                     PlayerMethods.playerFinish(player);
@@ -166,11 +167,11 @@ public class ParkourListener implements Listener {
         }
 
         for (BlockFace blockFace : blockFaces) {
-            Material material = player.getLocation().getBlock().getRelative(blockFace).getType();
+            Block relative = player.getLocation().getBlock().getRelative(blockFace);
+            ItemStack material = new ItemStack(relative.getType(), 1, relative.getData());
+            action = kit.getAction(material);
 
-            if (kit.getMaterials().contains(material)) {
-                String action = kit.getAction(material);
-
+            if (action != null) {
                 switch (action) {
                     case "climb":
                         if (!player.isSneaking()) {

@@ -6,7 +6,9 @@ import java.util.*;
 import me.A5H73Y.Parkour.Parkour;
 import me.A5H73Y.Parkour.Utilities.Utils;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.inventory.ItemStack;
 
 public class ParkourKit implements Serializable {
 
@@ -19,12 +21,12 @@ public class ParkourKit implements Serializable {
 
     // object attributes
     private String name;
-    private List<Material> materials = new ArrayList<>();
+    private HashMap<ItemStack, ConfigurationSection> materials = new HashMap<>();
 
     /**
      * ParkourKit
      * Each ParkourKit set has a unique name to refer to it, apart from the default set.
-     * The format being ParkourKit.(name).MATERIAL.Action = "action"
+     * The format being ParkourKit.(name).MATERIAL:DATAVALUE.Action = "action"
      * If the Material provided is invalid, then it won't be added to our list of materials
      * Also if the Action provided is invalid, then it won't be added to our list of materials.
      * This is so ParkourKit remain safe while in use on a course.
@@ -38,15 +40,25 @@ public class ParkourKit implements Serializable {
                 .getConfigurationSection("ParkourKit." + name).getKeys(false);
 
         for (String rawMaterial : rawMaterials) {
-            Material material = Material.getMaterial(rawMaterial);
+            String[] split = rawMaterial.split(":");
+            Material material = Material.getMaterial(split[0]);
+            ConfigurationSection section = Parkour.getParkourConfig().getParkourKitData().getConfigurationSection("ParkourKit." + name + "." + rawMaterial);
 
             if (material == null) {
-                Utils.log("Material " + rawMaterial + " is invalid.", 1);
+                Utils.log("Material " + split[0] + " is invalid.", 1);
                 continue;
             }
 
-            String action = Parkour.getParkourConfig().getParkourKitData()
-                    .getString("ParkourKit." + name + "." + material.name() + ".Action").toLowerCase();
+            short dataValue = 0;
+            if (split.length > 1) {
+                try {
+                    dataValue = Short.parseShort(split[1]);
+                } catch (NumberFormatException e) {
+                    Utils.log( split[1] + " is not a number.", 1);
+                }
+            }
+
+            String action = section.getString("Action").toLowerCase();
 
             if (!validActions.contains(action)) {
                 Utils.log("Action " + action + " is invalid.", 1);
@@ -54,7 +66,7 @@ public class ParkourKit implements Serializable {
             }
 
             // we only add the material once we know it's valid
-            materials.add(material);
+            materials.put(new ItemStack(material, 1, dataValue), section);
         }
     }
 
@@ -68,42 +80,54 @@ public class ParkourKit implements Serializable {
 
     /**
      * Get the materials that this ParkourKit is made up of
-     * @return List<Material>
+     * @return Set<ItemStack>
      */
-    public List<Material> getMaterials() {
-        return materials;
+    public Set<ItemStack> getMaterials() {
+        return materials.keySet();
+    }
+
+
+    /**
+     * Get the corresponding action for the material
+     * @param is
+     * @return corresponding action settings for material
+     */
+    public ConfigurationSection getSettings(ItemStack is) {
+        for (Map.Entry<ItemStack, ConfigurationSection> entry : materials.entrySet()) {
+            if (is.isSimilar(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     /**
      * Get the corresponding action for the material
-     * @param material
+     * @param is
      * @return corresponding action for material
      */
-    public String getAction(Material material) {
-        if (!materials.contains(material)) {
-            return null;
+    public String getAction(ItemStack is) {
+        ConfigurationSection section = getSettings(is);
+        if (section != null) {
+            return section.getString("Action").toLowerCase();
         }
-
-        return Parkour.getParkourConfig().getParkourKitData()
-                .getString("ParkourKit." + name + "." + material.name() + ".Action").toLowerCase();
+        return null;
     }
 
-    public Double getStrength(Material material) {
-        if (!materials.contains(material)) {
-            return 0.0;
+    public Double getStrength(ItemStack is) {
+        ConfigurationSection section = getSettings(is);
+        if (section != null) {
+            return section.getDouble("Strength");
         }
-
-        return Parkour.getParkourConfig().getParkourKitData()
-                .getDouble("ParkourKit." + name + "." + material.name() + ".Strength", 1);
+        return null;
     }
 
-    public Integer getDuration(Material material) {
-        if (!materials.contains(material)) {
-            return null;
+    public Integer getDuration(ItemStack is) {
+        ConfigurationSection section = getSettings(is);
+        if (section != null) {
+            return section.getInt("Strength");
         }
-
-        return Parkour.getParkourConfig().getParkourKitData()
-                .getInt("ParkourKit." + name + "." + material.name() + ".Duration", 200);
+        return null;
     }
 
     /**

@@ -568,7 +568,7 @@ public class PlayerMethods {
             kit = ParkourKit.getParkourKit(Constants.DEFAULT);
         }
 
-        for (Material material : kit.getMaterials()) {
+        for (ItemStack material : kit.getMaterials()) {
             String action = kit.getAction(material);
 
             if (action == null)
@@ -576,7 +576,7 @@ public class PlayerMethods {
 
             action = Utils.standardizeText(action);
 
-            ItemStack s = new ItemStack(material);
+            ItemStack s = material.clone();
             ItemMeta m = s.getItemMeta();
             m.setDisplayName(Utils.getTranslation("Kit." + action, false));
             s.setItemMeta(m);
